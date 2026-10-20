@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Analyse phylogénétique du gène 16S rRNA</title>
+<style>
+:root{--bg:#fbfaf7;--ink:#1e2a2f;--muted:#5d6b70;--accent:#1f6f6b;--rule:#d9dfdc;--code-bg:#f0f3f1;--out-bg:#fff;--out-edge:#1f6f6b;color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#14191b;--ink:#e3e8e6;--muted:#97a5a8;--accent:#6cc4bd;--rule:#2b3538;--code-bg:#1c2326;--out-bg:#171d1f;--out-edge:#6cc4bd;color-scheme:dark}}
+*{box-sizing:border-box}
+html{background:var(--bg)}
+body{margin:0 auto;max-width:860px;padding:3rem 1.25rem 5rem;color:var(--ink);background:var(--bg);font:17px/1.65 Georgia,"Iowan Old Style","Times New Roman",serif}
+h1{font-size:2.1rem;line-height:1.2;margin:0 0 .6rem}
+h2,h3,h4,h5,h6{line-height:1.3;margin:2.4rem 0 .6rem;color:var(--accent)}
+h3{font-size:1.35rem;padding-top:1.2rem;border-top:1px solid var(--rule)}
+h5,h6{font-size:1.05rem;color:var(--ink);margin-top:1.6rem}
+h6{font-weight:600;color:var(--muted)}
+p{margin:.7rem 0}
+blockquote{margin:.8rem 0;padding:.1rem 1rem;border-left:3px solid var(--accent);color:var(--muted)}
+ul{padding-left:1.3rem}
+.text pre,.text code{font-family:ui-monospace,Consolas,Menlo,monospace;font-size:.88rem}
+.text pre{background:var(--code-bg);padding:.8rem 1rem;border-radius:4px;overflow-x:auto}
+.formula{text-align:center;font-size:1.25rem;margin:1.2rem 0}
+.frac{display:inline-flex;flex-direction:column;vertical-align:middle;text-align:center;margin-left:.3rem}
+.frac span:first-child{border-bottom:1px solid var(--ink);padding:0 .4rem}
+.cell{margin:1.2rem 0}
+.lbl{font:600 .78rem/1 system-ui,sans-serif;color:var(--muted);margin:0 0 .35rem}
+.lbl.out{margin-top:.8rem;color:var(--accent)}
+pre{margin:0;overflow-x:auto;font:.84rem/1.5 ui-monospace,Consolas,Menlo,monospace;tab-size:4}
+pre.code{background:var(--code-bg);padding:.9rem 1rem;border-radius:4px}
+pre.output{background:var(--out-bg);padding:.9rem 1rem;border:1px solid var(--rule);border-left:3px solid var(--out-edge);border-radius:4px;max-height:420px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (max-width:600px){body{font-size:16px;padding-top:1.8rem}h1{font-size:1.65rem}}
+@media print{body{max-width:none}pre.output{max-height:none}}
+</style>
+</head>
+<body>
+<main>
+<section class="text"><h1>Analyse phylogénétique du gène 16S rRNA</h1>
+<p><strong>Regis HOUNKPATIN</strong> : Biologiste médicale | Biostatisticien</p>
+<p><strong>Projet pratique de Bioinformatique</strong> </p>
+<blockquote>
+<p>Python · NCBI/GenBank · Biopython · Matplotlib · Pandas</p>
+</blockquote></section>
+<section class="text"><h3>INTRODUCTION :</h3>
+<p>La bioinformatique occupe une place importante dans l'analyse des données biologiques, notamment dans l'étude des relations évolutives entre les organismes. Grâce aux outils informatiques et aux méthodes statistiques, il est possible de comparer des séquences d'ADN, d'identifier leurs similitudes et leurs différences, puis de reconstruire des arbres phylogénétiques permettant de représenter les relations de parenté entre différentes espèces.<br />
+Dans le cadre de ce travail pratique, nous allons étudier <strong>le gène codant l'ARN ribosomique 16S (16S rRNA) chez trois espèces bactériennes</strong> : <em>Escherichia coli</em>, <em>Salmonella enterica</em> et <em>Klebsiella pneumoniae</em>. Les séquences nucléotidiques seront récupérées dans la base de données GenBank, accessible par l'intermédiaire de la plateforme du National Center for Biotechnology Information (NCBI).<br />
+Après avoir vérifié et préparé les séquences, nous réaliserons des alignements globaux à l'aide de l'algorithme de Needleman–Wunsch. Nous calculerons ensuite les distances génétiques entre les espèces à partir des séquences alignées et reconstruirons deux arbres phylogénétiques, l'un par la méthode UPGMA et l'autre par la méthode Neighbor-Joining. Enfin, nous comparerons les arbres obtenus afin d'interpréter les relations évolutives suggérées par les données.</p></section>
+<section class="text"><h3>Présentation du gène 16S rRNA</h3>
+<p>Le gène 16S rRNA code l’ARN ribosomique 16S, un constituant essentiel de la petite sous-unité des ribosomes bactériens. Il est largement utilisé en phylogénétique grâce à sa présence chez les bactéries, à ses régions conservées et variables, ainsi qu’à sa disponibilité dans les bases de données comme GenBank. Les régions conservées facilitent l’alignement des séquences, tandis que les régions variables permettent d’identifier les différences génétiques entre espèces. Toutefois, sa forte conservation peut limiter la distinction entre certaines bactéries très proches.</p>
+<p>Nous allons travailler avec les trois espèces suivantes :<br />
+- <em>Escherichia coli</em> (Bactérie fréquemment retrouvée dans le microbiote intestinal humain) l'espèce de comparaison.<br />
+- <em>Salmonella enterica</em> (Bactérie pouvant provoquer des infections chez l'être humain) pour étudier les similitudes génétiques avec E. coli.<br />
+- <em>Klebsiella pneumoniae</em> (Bactérie pouvant être responsable d'infections, notamment respiratoires et sanguines) pour étudier les distances génétiques avec les deux autres espèces.</p></section>
+<section class="text"><h3>Objectifs :</h3>
+<p>Reconstruire et comparer les relations phylogénétiques entre Escherichia coli, Salmonella enterica et Klebsiella pneumoniae à partir des séquences de leur gène 16S rRNA</p></section>
+<section class="text"><h3>1_Récupérer les séquences nucléotidiques dans GenBank</h3>
+<p>Avant de réaliser une analyse phylogénétique, nous devons disposer des séquences nucléotidiques correspondant au même gène chez les trois espèces, ainsi nous allons commencer par une seule espèce, <em>Escherichia coli</em>, pour vérifier que la recherche fonctionne avant de l'étendre aux deux autres espèces</p></section>
+<div class="cell"><div class="lbl">Script</div><pre class="code"><code>#Installation de Biopython
+!pip install biopython</code></pre><div class="lbl out">Sortie</div><pre class="output"><code>Looking in indexes: https://pypi.tuna.tsinghua.edu.cn/simple
+Requirement already satisfied: biopython in c:\users\lenovo\anaconda3\lib\site-packages (1.88)
+Requirement already satisfied: numpy in c:\users\lenovo\anaconda3\lib\site-packages (from biopython) (1.26.4)</code></pre></div>
+<div class="cell"><div class="lbl">Script</div><pre class="code"><code>#identificationde et laision avec NCBI
+from Bio import Entrez           
+
+Entrez.email = &quot;regismnon@mail.com&quot;</code></pre></div>
+<section class="text"><h5>Rechercher le gène 16S rRNA chez Escherichia coli :</h5></section>
+<div class="cell"><div class="lbl">Script</div><pre class="code"><code>from Bio import Entrez
+
+Entrez.email = &quot;regismnon@mail.com&quot;
+
+handle = Entrez.esearch(db=&quot;nucleotide&quot;,
+    term=&quot;Escherichia coli[Organism] AND 16S ribosomal RNA[Title]&quot;,
+    retmax=1)
+
+record = Entrez.read(handle)
+handle.close()
+
+print(record[&quot;IdList&quot;])</code></pre><div class="lbl out">Sortie</div><pre class="output"><code>[&#x27;3405751687&#x27;]</code></pre></div>
+<section class="text"><h5>Recuperer sa sequence en format FASTA</h5></section>
+<div class="cell"><div class="lbl">Script</div><pre class="code"><code>from Bio import Entrez
+
+Entrez.email = &quot;regismnon@mail.com&quot;
+
+handle = Entrez.efetch(db=&quot;nucleotide&quot;, id=&quot;3405751687&quot;, rettype=&quot;fasta&quot;, retmode=&quot;text&quot;) 
+
+sequences_fasta = handle.read()     #le stocker dans sequence_fasta
+
+handle.close()         # fermeture de la connexion NCBI
+
+print(sequences_fasta)  # afficher la recuperation</code></pre><div class="lbl out">Sortie</div><pre class="output"><code>&gt;QB132022.1 Escherichia coli strain MA-05 16S ribosomal RNA gene, partial sequence
+TTTGGAGAGTTTGATCCTGGCTCAGATTGAACGCTGGCGGCAGGCCTAACACATGCAAGTCGAACGGTAA
+CAGGAAGAAGCTTGCTTCTTTGCTGACGAGTGGCGGACGGGTGAGTAATGTCTGGGAAACTGCCTGATGG
+AGGGGGATAACTACTGGAAACGGTAGCTAATACCGCATAACGTCGCAAGACCAAAGAGGGGGACCTTCGG
+GCCTCTTGCCATCGGATGTGCCCAGATGGGATTAGCTAGTAGGTGGGGTAACGGCTCACCTAGGCGACGA
+TCCCTAGCTGGTCTGAGAGGATGACCAGCCACACTGGAACTGAGACACGGTCCAGACTCCTACGGGAGGC
+AGCAGTGGGGAATATTGCACAATGGGCGCAAGCCTGATGCAGCCATGCCGCGTGTATGAAGAAGGCCTTC
+GGGTTGTAAAGTACTTTCAGCGGGGAGGAAGGGAGTAAAGTTAATACCTTTGCTCATTGACGTTACCCGC
+AGAAGAAGCACCGGCTAACTCCGTGCCAGCAGCCGCGGTAATACGGAGGGTGCAAGCGTTAATCGGAATT
+ACTGGGCGTAAAGCGCACGCAGGCGGTTTGTTAAGTCAGATGTGAAATCCCCGGGCTCAACCTGGGAACT
+GCATCTGATACTGGCAAGCTTGAGTCTCGTAGAGGGGGGTAGAATTCCAGGTGTAGCGGTGAAATGCGTA
+GAGATCTGGAGGAATACCGGTGGCGAAGGCGGCCCCCTGGACGAAGACTGACGCTCAGGTGCGAAAGCGT
+GGGGAGCAAACAGGATTAGATACCCTGGTAGTCCACGCCGTAAACGATGTCGACTTGGAGGTTGTGCCCT
+TGAGGCGTGGCTTCCGGAGCTAACGCGTTAAGTCGACCGCCTGGGGAGTACGGCCGCAAGGTTAAAACTC
+AAATGAATTGACGGGGGCCCGCACAAGCGGTGGAGCATGTGGTTTAATTCGATGCAACGCGAAGAACCTT
+ACCTGGTCTTGACATCCACGGAAGTTTTCAGAGATGAGAATGTGCCTTCGGGAACCGTGAGACAGGTGCT
+GCATGGCTGTCGTCAGCTCGTGTTGTGAAATGTTGGGTTAAGTCCCGCAACGAGCGCAACCCTTATCCTT
+TGTTGCCAGCGGTCCGGCCGGGAACTCAAAGGAGACTGCCAGTGATAAACTGGAGGAAGGTGGGGATGAC
+GTCAAGTCATCATGGCCCTTACGACCAGGGCTACACACGTGCTACAATGGCGCATACAAAGAGAAGCGAC
+CTCGCGAGAGCAAGCGGACCTCATAAAGTGCGTCGTAGTCCGGATTGGAGTCTGCAACTCGACTCCATGA
+AGTCGGAATCGCTAGTAATCGTGGATCAGAATGCCACGGTGAATACGTTCCCGGGCCT</code></pre></div>
+<section class="text"><h5>Recuperer sa sequence en format genbank</h5></section>
+<div class="cell"><div class="lbl">Script</div><pre class="code"><code>from Bio import Entrez
+
+Entrez.email = &quot;regismnon@mail.com&quot;
+
+handle = Entrez.efetch(db=&quot;nucleotide&quot;, id=&quot;3405751687&quot;, rettype=&quot;gb&quot;, retmode=&quot;text&quot;)   #(gb) pour dire dans un format genbank
+
+genbank = handle.read()
+
+handle.close()
+
+print(genbank)</code></pre><div class="lbl out">Sortie</div><pre class="output"><code>LOCUS       QB132022                1388 bp    DNA     linear   BCT 10-OCT-2026
+DEFINITION  Escherichia coli strain MA-05 16S ribosomal RNA gene, partial
+            sequence.
+ACCESSION   QB132022
+VERSION     QB132022.1
+KEYWORDS    .
+SOURCE      Escherichia coli
+  ORGANISM  Escherichia coli
+            Bacteria; Pseudomonadati; Pseudomonadota; Gammaproteobacteria;
+            Enterobacterales; Enterobacteriaceae; Escherichia.
+REFERENCE   1  (bases 1 to 1388)
+  AUTHORS   Aamir,M., Touqeer,M. and Amin,A.
+  TITLE     Direct Submission
+  JOURNAL   Submitted (05-OCT-2026) Department of Microbiology, University of
+            Central Punjab, Johar Town, LAHORE, Punjab 54850, Pakistan
+COMMENT     ##Assembly-Data-START##
+            Sequencing Technology :: Sanger dideoxy sequencing
+            ##Assembly-Data-END##
+FEATURES             Location/Qualifiers
+     source          1..1388
+                     /organism=&quot;Escherichia coli&quot;
+                     /mol_type=&quot;genomic DNA&quot;
+                     /strain=&quot;MA-05&quot;
+                     /db_xref=&quot;taxon:562&quot;
+                     /geo_loc_name=&quot;Pakistan: Lahore&quot;
+                     /collection_date=&quot;2026&quot;
+     rRNA            &lt;1..&gt;1388
+                     /product=&quot;16S ribosomal RNA&quot;
+ORIGIN      
+        1 tttggagagt ttgatcctgg ctcagattga acgctggcgg caggcctaac acatgcaagt
+       61 cgaacggtaa caggaagaag cttgcttctt tgctgacgag tggcggacgg gtgagtaatg
+      121 tctgggaaac tgcctgatgg agggggataa ctactggaaa cggtagctaa taccgcataa
+      181 cgtcgcaaga ccaaagaggg ggaccttcgg gcctcttgcc atcggatgtg cccagatggg
+      241 attagctagt aggtggggta acggctcacc taggcgacga tccctagctg gtctgagagg
+      301 atgaccagcc acactggaac tgagacacgg tccagactcc tacgggaggc agcagtgggg
+      361 aatattgcac aatgggcgca agcctgatgc agccatgccg cgtgtatgaa gaaggccttc
+      421 gggttgtaaa gtactttcag cggggaggaa gggagtaaag ttaatacctt tgctcattga
+      481 cgttacccgc agaagaagca ccggctaact ccgtgccagc agccgcggta atacggaggg
+      541 tgcaagcgtt aatcggaatt actgggcgta aagcgcacgc aggcggtttg ttaagtcaga
+      601 tgtgaaatcc ccgggctcaa cctgggaact gcatctgata ctggcaagct tgagtctcgt
+      661 agaggggggt agaattccag gtgtagcggt gaaatgcgta gagatctgga ggaataccgg
+      721 tggcgaaggc ggccccctgg acgaagactg acgctcaggt gcgaaagcgt ggggagcaaa
+      781 caggattaga taccctggta gtccacgccg taaacgatgt cgacttggag gttgtgccct
+      841 tgaggcgtgg cttccggagc taacgcgtta agtcgaccgc ctggggagta cggccgcaag
+      901 gttaaaactc aaatgaattg acgggggccc gcacaagcgg tggagcatgt ggtttaattc
+      961 gatgcaacgc gaagaacctt acctggtctt gacatccacg gaagttttca gagatgagaa
+     1021 tgtgccttcg ggaaccgtga gacaggtgct gcatggctgt cgtcagctcg tgttgtgaaa
+     1081 tgttgggtta agtcccgcaa cgagcgcaac ccttatcctt tgttgccagc ggtccggccg
+     1141 ggaactcaaa ggagactgcc agtgataaac tggaggaagg tggggatgac gtcaagtcat
+     1201 catggccctt acgaccaggg ctacacacgt gctacaatgg cgcatacaaa gagaagcgac
+     1261 ctcgcgagag caagcggacc tcataaagtg cgtcgtagtc cggattggag tctgcaactc
+     1321 gactccatga agtcggaatc gctagtaatc gtggatcaga atgccacggt gaatacgttc
+     1381 ccgggcct
+//</code></pre></div>
+<section class="text"><h5>Extraire le gène 16S rARN</h5>
+<p>La séquence obtenue a ensuite été enregistrée au format FASTA sous l'identifiant E_coli_16S_rRNA. Ce format permet de stocker les séquences nucléotidiques de manière standardisée.</p></section>
+<div class="cell"><div class="lbl">Script</div><pre class="code"><code>from Bio import Entrez, SeqIO
+
+Entrez.email = &quot;regismnon@mail.com&quot;
+
+# Récupération de l&#x27;enregistrement GenBank
+handle = Entrez.efetch(db=&quot;nucleotide&quot;, id=&quot;3405751687&quot;, rettype=&quot;gb&quot;,retmode=&quot;text&quot;)
+record = SeqIO.read(handle, &quot;genbank&quot;)
+handle.close()
+
+fichier_sortie = &quot;E_coli_16S.fasta&quot;     # Nom du fichier de sortie
+
+gene_16S = None           # Variable pour stocker le gène extrait
+
+for feature in record.features:               # Parcours des annotations
+    if feature.type == &quot;rRNA&quot;:
+        produit = feature.qualifiers.get(&quot;product&quot;, [&quot;&quot;])[0]
+
+        if &quot;16S ribosomal RNA&quot; in produit:           # Vérifier qu&#x27;il s&#x27;agit du gène 16S
+
+# Extraire la séquence correspondant à l&#x27;annotation
+            gene_16S = feature.extract(record.seq)
+
+            print(&quot;Gène 16S rRNA identifié.&quot;)
+            print(&quot;Longueur :&quot;, len(gene_16S), &quot;nucléotides&quot;)
+            print(&quot;Séquence :&quot;, gene_16S)
+
+            break
+if gene_16S is not None:                   # Enregistrer la séquence au format FASTA
+     with open(fichier_sortie, &quot;w&quot;) as fasta_file:
+         fasta_file.write(f&quot;&gt;Escherichia_coli_16S_rRNA\n{gene_16S}\n&quot;)
+         print(&quot;Séquence enregistrée dans :&quot;, fichier_sortie)
+
+else:
+
+    print(&quot;Gène 16S rRNA non trouvé dans cet enregistrement.&quot;)</code></pre><div class="lbl out">Sortie</div><pre class="output"><code>Gène 16S rRNA identifié.
+Longueur : 1388 nucléotides
+Séquence : TTTGGAGAGTTTGATCCTGGCTCAGATTGAACGCTGGCGGCAGGCCTAACACATGCAAGTCGAACGGTAACAGGAAGAAGCTTGCTTCTTTGCTGACGAGTGGCGGACGGGTGAGTAATGTCTGGGAAACTGCCTGATGGAGGGGGATAACTACTGGAAACGGTAGCTAATACCGCATAACGTCGCAAGACCAAAGAGGGGGACCTTCGGGCCTCTTGCCATCGGATGTGCCCAGATGGGATTAGCTAGTAGGTGGGGTAACGGCTCACCTAGGCGACGATCCCTAGCTGGTCTGAGAGGATGACCAGCCACACTGGAACTGAGACACGGTCCAGACTCCTACGGGAGGCAGCAGTGGGGAATATTGCACAATGGGCGCAAGCCTGATGCAGCCATGCCGCGTGTATGAAGAAGGCCTTCGGGTTGTAAAGTACTTTCAGCGGGGAGGAAGGGAGTAAAGTTAATACCTTTGCTCATTGACGTTACCCGCAGAAGAAGCACCGGCTAACTCCGTGCCAGCAGCCGCGGTAATACGGAGGGTGCAAGCGTTAATCGGAATTACTGGGCGTAAAGCGCACGCAGGCGGTTTGTTAAGTCAGATGTGAAATCCCCGGGCTCAACCTGGGAACTGCATCTGATACTGGCAAGCTTGAGTCTCGTAGAGGGGGGTAGAATTCCAGGTGTAGCGGTGAAATGCGTAGAGATCTGGAGGAATACCGGTGGCGAAGGCGGCCCCCTGGACGAAGACTGACGCTCAGGTGCGAAAGCGTGGGGAGCAAACAGGATTAGATACCCTGGTAGTCCACGCCGTAAACGATGTCGACTTGGAGGTTGTGCCCTTGAGGCGTGGCTTCCGGAGCTAACGCGTTAAGTCGACCGCCTGGGGAGTACGGCCGCAAGGTTAAAACTCAAATGAATTGACGGGGGCCCGCACAAGCGGTGGAGCATGTGGTTTAATTCGATGCAACGCGAAGAACCTTACCTGGTCTTGACATCCACGGAAGTTTTCAGAGATGAGAATGTGCCTTCGGGAACCGTGAGACAGGTGCTGCATGGCTGTCGTCAGCTCGTGTTGTGAAATGTTGGGTTAAGTCCCGCAACGAGCGCAACCCTTATCCTTTGTTGCCAGCGGTCCGGCCGGGAACTCAAAGGAGACTGCCAGTGATAAACTGGAGGAAGGTGGGGATGACGTCAAGTCATCATGGCCCTTACGACCAGGGCTACACACGTGCTACAATGGCGCATACAAAGAGAAGCGACCTCGCGAGAGCAAGCGGACCTCATAAAGTGCGTCGTAGTCCGGATTGGAGTCTGCAACTCGACTCCATGAAGTCGGAATCGCTAGTAATCGTGGATCAGAATGCCACGGTGAATACGTTCCCGGGCCT
+Séquence enregistrée dans : E_coli_16S.fasta</code></pre></div>
+<section class="text"><h3>2_ Recuperation, Identification et axtraction des sequences</h3>
+<p>La récupération des séquences a été réalisée à l'aide du module Entrez de la bibliothèque Biopython, qui permet d'interroger les bases de données du NCBI et d'en extraire les enregistrements nucléotidiques. Les séquences obtenues ont ensuite été examinées afin de vérifier l'identité des organismes, l'annotation du gène étudié et la longueur des régions récupérées.<br />
+Vérifier l'identité et la qualité des séquences du gène 16S rRNA chez les trois espèces, extraire les régions correspondantes et de les enregistrer dans un fichier FASTA nommé 16S_rRNA_only.fasta.</p></section>
+<div class="cell"><div class="lbl">Script</div><pre class="code"><code>from Bio import Entrez, SeqIO
+
+Entrez.email = &quot;regismnon@mail.com&quot;
+
+species = [ &quot;Escherichia coli&quot;,&quot;Salmonella enterica&quot;,&quot;Klebsiella pneumoniae&quot;]
+
+# Fichier FASTA de sortie
+output_file = &quot;16S_rRNA_only.fasta&quot;
+
+sequences = []
+
+# --------------------------------------------------
+# 2. Recherche et extraction du gène 16S rRNA
+# --------------------------------------------------
+for sp in species:
+
+    print(f&quot;\nRecherche du gène 16S rRNA chez : {sp}&quot;)
+
+# Recherche dans la base NCBI Nucleotide
+    query = (f&#x27;&quot;{sp}&quot;[Organism] &#x27; &#x27;AND &quot;16S ribosomal RNA&quot;[Title]&#x27; )
+
+    try:
+
+        with Entrez.esearch(db=&quot;nucleotide&quot;,term=query, retmax=10) as handle:
+
+            search_results = Entrez.read(handle)
+
+        ids = search_results[&quot;IdList&quot;]
+
+        if not ids:
+            print(f&quot;Aucun résultat trouvé pour {sp}.&quot;)
+            continue
+
+        print(f&quot;{len(ids)} enregistrements trouvés.&quot;)
+
+# Récupération des enregistrements GenBank
+        with Entrez.efetch(db=&quot;nucleotide&quot;,id=ids,rettype=&quot;gb&quot;,retmode=&quot;text&quot;) as handle:
+
+            records = list(SeqIO.parse(handle, &quot;genbank&quot;))
+
+# --------------------------------------------------
+# 3. Identification et extraction du gène 16S rRNA
+# --------------------------------------------------
+
+        gene_found = False
+
+for record in records:           # Vérifier l&#x27;organisme
+
+            organism = record.annotations.get(&quot;organism&quot;, &quot;&quot;)
+
+            if sp.lower() not in organism.lower():
+                continue
+
+            for feature in record.features:
+
+                if feature.type == &quot;rRNA&quot;:
+
+                    product = feature.qualifiers.get( &quot;product&quot;, [&quot;&quot;])[0]            # Vérifier qu&#x27;il s&#x27;agit du 16S rRNA
+
+                    if &quot;16S ribosomal RNA&quot; in product:
+
+                        gene_sequence = feature.extract(record.seq)      # Construire un enregistrement FASTA
+                        fasta_record = SeqIO.SeqRecord(gene_sequence,id=sp.replace(&quot; &quot;, &quot;_&quot;),
+                            description=(f&quot;16S_rRNA accession={record.id}&quot;))
+
+                        sequences.append(fasta_record)
+
+                        print(&quot;Séquence extraite avec succès.&quot;)
+                        print(&quot;Accession :&quot;, record.id)
+                        print(&quot;Longueur :&quot;,len(gene_sequence), &quot;nucléotides&quot;)
+
+                        gene_found = True
+                        break
+
+            if gene_found:
+                break
+
+        if not gene_found:
+            print(f&quot;Aucune annotation 16S rRNA exploitable &quot;f&quot;trouvée pour {sp}.&quot;)
+
+    except Exception as e:
+        print(f&quot;Erreur pour {sp} : {e}&quot;)
+
+# --------------------------------------------------
+# 4. Enregistrement des séquences au format FASTA
+# --------------------------------------------------
+
+if sequences:
+    SeqIO.write(sequences, output_file, &quot;fasta&quot;)
+    
+    print(&quot;\nExtraction terminée.&quot;)
+    print(&quot;Nombre de séquences obtenues :&quot;, len(sequences))
+    print(&quot;Fichier créé :&quot;, output_file)
+
+else:
+
+    print(&quot;\nAucune séquence n&#x27;a pu être extraite.&quot;)</code></pre><div class="lbl out">Sortie</div><pre class="output"><code>
+Recherche du gène 16S rRNA chez : Escherichia coli
+10 enregistrements trouvés.
+Séquence extraite avec succès.
+Accession : QB138799.1
+Longueur : 1473 nucléotides
+
+Recherche du gène 16S rRNA chez : Salmonella enterica
+10 enregistrements trouvés.
+Séquence extraite avec succès.
+Accession : QB135917.1
+Longueur : 1272 nucléotides
+
+Recherche du gène 16S rRNA chez : Klebsiella pneumoniae
+10 enregistrements trouvés.
+Séquence extraite avec succès.
+Accession : QB135914.1
+Longueur : 1145 nucléotides
+
+Extraction terminée.
+Nombre de séquences obtenues : 3
+Fichier créé : 16S_rRNA_only.fasta</code></pre></div>
+<section class="text"><h5>Charger les sequences</h5>
+<p>les sequences extraire sont donc stocker et ensuite charger dans un dictionnaire pour Python pour mieux présenté leur details et favoriser la suite de l'analyse.</p></section>
+<div class="cell"><div class="lbl">Script</div><pre class="code"><code>from Bio import SeqIO           
+sequences = list(SeqIO.parse(&quot;16S_rRNA_only.fasta&quot;, &quot;fasta&quot;))
+print(sequences)</code></pre><div class="lbl out">Sortie</div><pre class="output"><code>[SeqRecord(seq=Seq(&#x27;GAGGGTATGCGGCAGGCCTAACACATGCAAGTCGAACGGTAACAGGAAGCAGCT...GCA&#x27;), id=&#x27;Escherichia_coli&#x27;, name=&#x27;Escherichia_coli&#x27;, description=&#x27;Escherichia_coli 16S_rRNA accession=QB138799.1&#x27;, dbxrefs=[]), SeqRecord(seq=Seq(&#x27;AGTAATGTCTGGGAAACTGCCTGATGGAGGGGGATAACTACTGGAAACGGTGGC...GGG&#x27;), id=&#x27;Salmonella_enterica&#x27;, name=&#x27;Salmonella_enterica&#x27;, description=&#x27;Salmonella_enterica 16S_rRNA accession=QB135917.1&#x27;, dbxrefs=[]), SeqRecord(seq=Seq(&#x27;AGGMGGCCWAMAMATGCAAGTCGAGCGGTAGCACAGAGAGCTTGCTCTCGGGTG...GGA&#x27;), id=&#x27;Klebsiella_pneumoniae&#x27;, name=&#x27;Klebsiella_pneumoniae&#x27;, description=&#x27;Klebsiella_pneumoniae 16S_rRNA accession=QB135914.1&#x27;, dbxrefs=[])]</code></pre></div>
+<div class="cell"><div class="lbl">Script</div><pre class="code"><code>for i in sequences:
+    print(f&quot;Identifiant : {i.id}&quot;)
+    print(f&quot;Description : {i.description}&quot;)
+    print(f&quot;Longueur séquence : {len(i.seq)}&quot;)
+    print(f&quot;Séquence : {i.seq}&quot;)
+    print(&#x27;\n&#x27;)</code></pre><div class="lbl out">Sortie</div><pre class="output"><code>Identifiant : Escherichia_coli
+Description : Escherichia_coli 16S_rRNA accession=QB138799.1
+Longueur séquence : 1473
+Séquence : GAGGGTATGCGGCAGGCCTAACACATGCAAGTCGAACGGTAACAGGAAGCAGCTTGCTGCTTTGCTGACGAGTGGCGGACGGGTGAGTAATGTCTGGGAAACTGCCTGATGGAGGGGGATAACTACTGGAAACGGTAGCTAATACCGCATAACGTCGCAAGCACAAAGAGGGGGACCTTAGGGCCTCTTGCCATCGGATGTGCCCAGATGGGATTAGCTAGTAGGTGGGGTAACGGCTCACCTAGGCGACAATCCCTAGGTGGTCTGAGAGGATGACCAGCCACACTGGAACTGAGACACGGTCCAGACTCCTACGGGAGGCAGCAGTGGGGAATATTGCACAATGGGCGCAAGCCTGATGCAGCCATGCCGCGTGTATGAAGAAGGCCTTCGGGTTGTAAAGTACTTTCAGCGGGGAGGAAGGGAGTAAAGTTAATACCTTTGCTCATTGACGTTACCCGCAGAAGAAGCACCGGCTAACTCCGTGCCAGCAGCCGCGGTAATACGGAGGGTGCAAGCGTTAATCGGAATTACTGGGCGTAAAGCGCACGCAGGCGGTTTGTTAAGTCAGATGTGAAATCCCCGGGCTCAACCTGGGAACTGCATCTGATACTGGCAAGCTTGAGTCTCGTAGAGGGGGGTAGAATTCCAGGTGTAGCGGTGAAATGCGTAGAGATCTGGAGGAATACCGGTGGCGAAGGCGGCCCCCTGGACGAAGACTGACGCTCAGGTGCGAAAGCGTGGGGAGCAAACAGGATTAGATACCCTGGTAGTCCACGCCGTAAACGATGTCGACTTGGAGGTTGTGCCCTTGAGGCGTGGCTTCCGGAGCTAACGCGTTAAGTCGACCGCCTGGGGAGTACGGCCGCAAGGTTAAAACTCAAATGAATTGACGGGGGCCGCACAAGCGGTGGAGCATGTGGTTTAATTCGATGCAACGCGAAGAACCTTACCTGGTCTTGACATCCACGGAAGTTTCCAGAGATGGGAAGGTGCCTTCGGGAACCGTGAGACAGGTGCTGCATGGCTGTCGTCAGCTCGTGTTGTGAAATGTTGGGTTAAGTCCCGCAACGAGCGCAACCCTTATCCTTTGTTGCCAGCGGTCCGGCCGGGAACTCAAAGGAGACTGCCAGTGATAAACTGGAGGAAGGTGGGGATGACGTCAAGTCATCATGGCCCTTACGACCAGGGCTACACACGTGCTACAATGGCGCATACAAAGAGAAGCGACCTCGCGAGAGCAAGCGGACCTCATAAAGTGCGTCGTAGTCCGGATTGGAGTCTGCAACTCGACTCCATGAAGTCGGAATCGCTAGTAATCGTGGATCAGAATGCCACGGTGAATACGTTCCCGGGCCTTGTACACACCGCCCGTCACACCATGGGAGTGGGTTGCAAAAGAAGTAGGTAGCTTAACTTCGGGAGGGCGCTTACCACTTTGTGATTCATGACTGGGGTGAAGTCGAACAAGCA
+
+
+Identifiant : Salmonella_enterica
+Description : Salmonella_enterica 16S_rRNA accession=QB135917.1
+Longueur séquence : 1272
+Séquence : AGTAATGTCTGGGAAACTGCCTGATGGAGGGGGATAACTACTGGAAACGGTGGCTAATACCGCATAACGTCGCAAGACCAAAGAGGGGGACCTTCGGGCCTCTTGCCATCAGATGTGCCCAGATGGGATTAGCTTGTTGGTGAGGTAACGGCTCACCAAGGCGACGATCCCTAGCTGGTCTGAGAGGATGACCAGCCACACTGGAACTGAGACACGGTCCAGACTCCTACGGGAGGCAGCAGTGGGGAATATTGCACAATGGGCGCAAGCCTGATGCAGCCATGCCGCGTGTATGAAGAAGGCCTTCGGGTTGTAAAGTACTTTCAGCGGGGAGGAAGGTGTTGTGGTTAATAACCGCAGCAATTGACGTTACCCGCAGAAGAAGCACCGGCTAACTCCGTGCCAGCAGCCGCGGTAATACGGAGGGTGCAAGCGTTAATCGGAATTACTGGGCGTAAAGCGCACGCAGGCGGTCTGTCAAGTCGGATGTGAAATCCCCGGGCTCAACCTGGGAACTGCATTCGAAACTGGCAGGCTTGAGTCTTGTAGAGGGGGGTAGAATTCCAGGTGTAGCGGTGAAATGCGTAGAGATCTGGAGGAATACCGGTGGCGAAGGCGGCCCCCTGGACAAAGACTGACGCTCAGGTGCGAAAGCGTGGGGAGCAAACAGGATTAGATACCCTGGTAGTCCACGCCGTAAACGATGTCTACTTGGAGGTTGTGCCCTTGAGGCGTGGCTTCCGGAGCTAACGCGTTAAGTAGACCGCCTGGGGAGTACGGCCGCAAGGTTAAAACTCAAATGAATTGACGGGGGCCCGCACAAGCGGTGGAGCATGTGGTTTAATTCGATGCAACGCGAAGAACCTTACCTGGTCTTGACATCCACAGAAGAATCCAGAGATGGATTTGTGCCTTCGGGAACTGTGAGACAGGTGCTGCATGGCTGTCGTCAGCTCGTGTTGTGAAATGTTGGGTTAAGTCCCGCAACGAGCGCAACCCTTATCCTTTGTTGCCAGCGGTTAGGCCGGGAACTCAAAGGAGACTGCCAGTGATAAACTGGAGGAAGGTGGGGATGACGTCAAGTCATCATGGCCCTTACGACCAGGGCTACACACGTGCTACAATGGCGCATACAAAGAGAAGCGACCTCGCGAGAGCAAGCGGACCTCATAAAGTGCGTCGTAGTCCGGATTGGAGTCTGCAACTCGACTCCATGAAGTCGGAATCGCTAGTAATCGTGGATCAGAATGCCACGGTGAATACGTTCCCGGG
+
+
+Identifiant : Klebsiella_pneumoniae
+Description : Klebsiella_pneumoniae 16S_rRNA accession=QB135914.1
+Longueur séquence : 1145
+Séquence : AGGMGGCCWAMAMATGCAAGTCGAGCGGTAGCACAGAGAGCTTGCTCTCGGGTGACGAGCGGCGGACGGGTGAGTAATGTCTGGGAAACTGCCTGATGGAGGGGGATAACTACTGGAAACGGTAGCTAATACCGCATAACGTCGCAAGACCAAAGTGGGGGACCTTCGGGCCTCATGCCATCAGATGTGCCCAGATGGGATTAGCTAGTAGGTGGGGTAACGGCTCACCTAGGCGACGATCCCTAGCTGGTCTGAGAGGATGACCAGCCACACTGGAACTGAGACACGGTCCAGACTCCTACGGGAGGCAGCAGTGGGGAATATTGCACAATGGGCGCAAGCCTGATGCAGCCATGCCGCGTGTATGAAGAAGGCCTTCGGGTTGTAAAGTACTTTCAGCGGGGAGGAAGGCGATAAGGTTAATAACCTTGTCGATTGACGTTACCCGCAGAAGAAGCACCGGCTAACTCCGTGCCAGCAGCCGCGGTAATACGGAGGGTGCAAGCGTTAATCGGAATTACTGGGCGTAAAGCGCACGCAGGCGGTCTGTCAAGTCGGATGTGAAATCCCCGGGCTCAACCTGGGAACTGCATTCGAAACTGGCAGGCTAGAGTCTTGTAGAGGGGGGTAGAATTCCAGGTGTAGCGGTGAAATGCGTAGAGATCTGGAGGAATACCGGTGGCGAAGGCGGCCCCCTGGACAAAGACWGACGCTCAGGTGCGAAAGCGTGGGGAGCAAACAGGATTAGATACCCTGGTAGTCCACGCCGTAAACGATRTCGATTTGGAGGTTGTGCCCTTGAGGCGTGGCTTCCGGAGCTAACGCGTTAAATCGACCGCCTGGGGAGTACGGCCGCAAGGTTAAAACTCAATGAATTGACGGGGGGCCCGCACAAGCGGTGGAGCATGTGGTTTAATTCGATGCAACGCGCAGAACCTTAYCTGGTCTTGACATCCACAGAACTTAGCAGAGATGCTTTGGTGCCTTCGGGAACTGTGAGACAGGTGCTGCATGGCTGTCGTCAGCTCGTGTTGTGAAATGTTGGGATAAGTCCCGCACGAGMGCATCCATATCATTKGTTGCAGCGATTCGGCCGGTAACTCAAGGAGACTGCAGTTGATAACTTGGAGGAAAAAAKGTKGGGA</code></pre></div>
+<section class="text"><h3>3_ Réaliser des alignements globaux avec Needleman–Wunsch.</h3>
+<p>Après l'extraction des séquences du gène codant l'ARN ribosomique 16S chez Escherichia coli, Salmonella enterica et Klebsiella pneumoniae, une étape d'alignement a été envisagée afin de comparer leurs séquences nucléotidiques. il permet de mettre en correspondance les positions homologues des séquences et d'identifier les différences nucléotidiques susceptibles de renseigner sur leur divergence évolutive.<br />
+Cet alignement sera réalisés à l'aide de l'algorithme de Needleman–Wunsch.<br />
+Cet algorithme réalise un alignement global, c'est-à-dire qu'il cherche à aligner les séquences sur toute leur longueur. Il repose sur la programmation dynamique et attribue un score aux correspondances (match), aux différences (mismatch) et aux insertions/suppressions représentées par des gaps (-). L'objectif est de trouver l'alignement ayant le meilleur score global. Dans notre étude, l'algorithme de Needleman-Wunsch sera appliqué aux séquences du gène 16S rRNA obtenues chez les différentes espèces. <br />
+Ainsi nous commencerons par effectuer les alignements deux à deux :<br />
+- Escherichia coli et Salmonella enterica ;<br />
+- Escherichia coli et Klebsiella pneumoniae ;<br />
+- Salmonella enterica et Klebsiella pneumoniae.</p>
+<p>Les alignements serviront ensuite au calcul des distances génétiques, qui seront utilisées pour construire plus tard les arbres phylogénétiques</p></section>
+<section class="text"><h5>3-1_ Creer l'aligner de Needleman Wunsch</h5></section>
+<div class="cell"><div class="lbl">Script</div><pre class="code"><code>from Bio.Align import PairwiseAligner
+
+# instancier la classe permettant d&#x27;effectuer l&#x27;alignement
+aligner = PairwiseAligner()
+
+# Nous précisons que nous utilisons l&#x27;algorithme de Needleman-Wunsch
+aligner.mode = &quot;global&quot;
+
+# Paramètres de score
+aligner.match_score = 1
+aligner.mismatch_score = -1
+
+aligner.open_gap_score = -2
+aligner.extend_gap_score = -0.5</code></pre></div>
+<div class="cell"><div class="lbl">Script</div><pre class="code"><code>#identification des espèces
+print(sequences[0].description)
+print(sequences[1].description)
+print(sequences[2].description)</code></pre><div class="lbl out">Sortie</div><pre class="output"><code>Escherichia_coli 16S_rRNA accession=QB138799.1
+Salmonella_enterica 16S_rRNA accession=QB135917.1
+Klebsiella_pneumoniae 16S_rRNA accession=QB135914.1</code></pre></div>
+<section class="text"><h5>3-2_ E.coli vs S. enterica</h5></section>
+<div class="cell"><div class="lbl">Script</div><pre class="code"><code>seq1 = sequences[0].seq
+seq2 = sequences[1].seq
+
+alignments = aligner.align(seq1, seq2)
+
+best_alignment = alignments[0]
+
+print(best_alignment)
+print(&quot;Score :&quot;, best_alignment.score)</code></pre><div class="lbl out">Sortie</div><pre class="output"><code>target            0 GAGGGTATGCGGCAGGCCTAACACATGCAAGTCGAACGGTAACAGGAAGCAGCTTGCTGC
+                  0 ------------------------------------------------------------
+query             0 ------------------------------------------------------------
+
+target           60 TTTGCTGACGAGTGGCGGACGGGTGAGTAATGTCTGGGAAACTGCCTGATGGAGGGGGAT
+                 60 -------------------------|||||||||||||||||||||||||||||||||||
+query             0 -------------------------AGTAATGTCTGGGAAACTGCCTGATGGAGGGGGAT
+
+target          120 AACTACTGGAAACGGTAGCTAATACCGCATAACGTCGCAAGCACAAAGAGGGGGACCTTA
+                120 ||||||||||||||||.||||||||||||||||||||||||..||||||||||||||||.
+query            35 AACTACTGGAAACGGTGGCTAATACCGCATAACGTCGCAAGACCAAAGAGGGGGACCTTC
+
+target          180 GGGCCTCTTGCCATCGGATGTGCCCAGATGGGATTAGCTAGTAGGTGGGGTAACGGCTCA
+                180 |||||||||||||||.|||||||||||||||||||||||.||.||||.||||||||||||
+query            95 GGGCCTCTTGCCATCAGATGTGCCCAGATGGGATTAGCTTGTTGGTGAGGTAACGGCTCA
+
+target          240 CCTAGGCGACAATCCCTAGGTGGTCTGAGAGGATGACCAGCCACACTGGAACTGAGACAC
+                240 ||.|||||||.||||||||.||||||||||||||||||||||||||||||||||||||||
+query           155 CCAAGGCGACGATCCCTAGCTGGTCTGAGAGGATGACCAGCCACACTGGAACTGAGACAC
+
+target          300 GGTCCAGACTCCTACGGGAGGCAGCAGTGGGGAATATTGCACAATGGGCGCAAGCCTGAT
+                300 ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+query           215 GGTCCAGACTCCTACGGGAGGCAGCAGTGGGGAATATTGCACAATGGGCGCAAGCCTGAT
+
+target          360 GCAGCCATGCCGCGTGTATGAAGAAGGCCTTCGGGTTGTAAAGTACTTTCAGCGGGGAGG
+                360 ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+query           275 GCAGCCATGCCGCGTGTATGAAGAAGGCCTTCGGGTTGTAAAGTACTTTCAGCGGGGAGG
+
+target          420 AAGGGAGTAAAGTTAAT-ACCTTTGCTCATTGACGTTACCCGCAGAAGAAGCACCGGCTA
+                420 ||||...|...||||||-|||...||-.||||||||||||||||||||||||||||||||
+query           335 AAGGTGTTGTGGTTAATAACCGCAGC-AATTGACGTTACCCGCAGAAGAAGCACCGGCTA
+
+target          479 ACTCCGTGCCAGCAGCCGCGGTAATACGGAGGGTGCAAGCGTTAATCGGAATTACTGGGC
+                480 ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+query           394 ACTCCGTGCCAGCAGCCGCGGTAATACGGAGGGTGCAAGCGTTAATCGGAATTACTGGGC
+
+target          539 GTAAAGCGCACGCAGGCGGTTTGTTAAGTCAGATGTGAAATCCCCGGGCTCAACCTGGGA
+                540 ||||||||||||||||||||.|||.|||||.|||||||||||||||||||||||||||||
+query           454 GTAAAGCGCACGCAGGCGGTCTGTCAAGTCGGATGTGAAATCCCCGGGCTCAACCTGGGA
+
+target          599 ACTGCATCTGATACTGGCAAGCTTGAGTCTCGTAGAGGGGGGTAGAATTCCAGGTGTAGC
+                600 |||||||..||.|||||||.||||||||||.|||||||||||||||||||||||||||||
+query           514 ACTGCATTCGAAACTGGCAGGCTTGAGTCTTGTAGAGGGGGGTAGAATTCCAGGTGTAGC
+
+target          659 GGTGAAATGCGTAGAGATCTGGAGGAATACCGGTGGCGAAGGCGGCCCCCTGGACGAAGA
+                660 |||||||||||||||||||||||||||||||||||||||||||||||||||||||.||||
+query           574 GGTGAAATGCGTAGAGATCTGGAGGAATACCGGTGGCGAAGGCGGCCCCCTGGACAAAGA
+
+target          719 CTGACGCTCAGGTGCGAAAGCGTGGGGAGCAAACAGGATTAGATACCCTGGTAGTCCACG
+                720 ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+query           634 CTGACGCTCAGGTGCGAAAGCGTGGGGAGCAAACAGGATTAGATACCCTGGTAGTCCACG
+
+target          779 CCGTAAACGATGTCGACTTGGAGGTTGTGCCCTTGAGGCGTGGCTTCCGGAGCTAACGCG
+                780 ||||||||||||||.|||||||||||||||||||||||||||||||||||||||||||||
+query           694 CCGTAAACGATGTCTACTTGGAGGTTGTGCCCTTGAGGCGTGGCTTCCGGAGCTAACGCG
+
+target          839 TTAAGTCGACCGCCTGGGGAGTACGGCCGCAAGGTTAAAACTCAAATGAATTGACGGGGG
+                840 ||||||.|||||||||||||||||||||||||||||||||||||||||||||||||||||
+query           754 TTAAGTAGACCGCCTGGGGAGTACGGCCGCAAGGTTAAAACTCAAATGAATTGACGGGGG
+
+target          899 -CCGCACAAGCGGTGGAGCATGTGGTTTAATTCGATGCAACGCGAAGAACCTTACCTGGT
+                900 -|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+query           814 CCCGCACAAGCGGTGGAGCATGTGGTTTAATTCGATGCAACGCGAAGAACCTTACCTGGT
+
+target          958 CTTGACATCCACGGAAGTTTCCAGAGATGGGAAGGTGCCTTCGGGAACCGTGAGACAGGT
+                960 ||||||||||||.||||..|||||||||||....||||||||||||||.|||||||||||
+query           874 CTTGACATCCACAGAAGAATCCAGAGATGGATTTGTGCCTTCGGGAACTGTGAGACAGGT
+
+target         1018 GCTGCATGGCTGTCGTCAGCTCGTGTTGTGAAATGTTGGGTTAAGTCCCGCAACGAGCGC
+               1020 ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+query           934 GCTGCATGGCTGTCGTCAGCTCGTGTTGTGAAATGTTGGGTTAAGTCCCGCAACGAGCGC
+
+target         1078 AACCCTTATCCTTTGTTGCCAGCGGTCCGGCCGGGAACTCAAAGGAGACTGCCAGTGATA
+               1080 ||||||||||||||||||||||||||..||||||||||||||||||||||||||||||||
+query           994 AACCCTTATCCTTTGTTGCCAGCGGTTAGGCCGGGAACTCAAAGGAGACTGCCAGTGATA
+
+target         1138 AACTGGAGGAAGGTGGGGATGACGTCAAGTCATCATGGCCCTTACGACCAGGGCTACACA
+               1140 ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+query          1054 AACTGGAGGAAGGTGGGGATGACGTCAAGTCATCATGGCCCTTACGACCAGGGCTACACA
+
+target         1198 CGTGCTACAATGGCGCATACAAAGAGAAGCGACCTCGCGAGAGCAAGCGGACCTCATAAA
+               1200 ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+query          1114 CGTGCTACAATGGCGCATACAAAGAGAAGCGACCTCGCGAGAGCAAGCGGACCTCATAAA
+
+target         1258 GTGCGTCGTAGTCCGGATTGGAGTCTGCAACTCGACTCCATGAAGTCGGAATCGCTAGTA
+               1260 ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+query          1174 GTGCGTCGTAGTCCGGATTGGAGTCTGCAACTCGACTCCATGAAGTCGGAATCGCTAGTA
+
+target         1318 ATCGTGGATCAGAATGCCACGGTGAATACGTTCCCGGGCCTTGTACACACCGCCCGTCAC
+               1320 ||||||||||||||||||||||||||||||||||||||----------------------
+query          1234 ATCGTGGATCAGAATGCCACGGTGAATACGTTCCCGGG----------------------
+
+target         1378 ACCATGGGAGTGGGTTGCAAAAGAAGTAGGTAGCTTAACTTCGGGAGGGCGCTTACCACT
+               1380 ------------------------------------------------------------
+query          1272 ------------------------------------------------------------
+
+target         1438 TTGTGATTCATGACTGGGGTGAAGTCGAACAAGCA 1473
+               1440 ----------------------------------- 1475
+query          1272 ----------------------------------- 1272
+
+Score : 1076.0</code></pre></div>
+<section class="text"><h5>E.coli vs K. pneumoniae</h5></section>
+<div class="cell"><div class="lbl">Script</div><pre class="code"><code>seq1 = sequences[0].seq
+seq3 = sequences[2].seq
+
+alignments = aligner.align(seq1, seq3)
+
+best_alignment = alignments[0]
+
+print(best_alignment)
+print(&quot;Score :&quot;, best_alignment.score)</code></pre><div class="lbl out">Sortie</div><pre class="output"><code>target            0 GAGGGTATGCGGCAGGCCTAACACATGCAAGTCGAACGGTA--ACAGGAAGCAGCTTGCT
+                  0 -|||---------.||||-.|.|.|||||||||||.|||||--||||--||-||||||||
+query             0 -AGG---------MGGCC-WAMAMATGCAAGTCGAGCGGTAGCACAG--AG-AGCTTGCT
+
+target           58 GCTTTGCTGACGAGTGGCGGACGGGTGAGTAATGTCTGGGAAACTGCCTGATGGAGGGGG
+                 60 -||..|.|||||||.|||||||||||||||||||||||||||||||||||||||||||||
+query            46 -CTCGGGTGACGAGCGGCGGACGGGTGAGTAATGTCTGGGAAACTGCCTGATGGAGGGGG
+
+target          118 ATAACTACTGGAAACGGTAGCTAATACCGCATAACGTCGCAAGCACAAAGAGGGGGACCT
+                120 |||||||||||||||||||||||||||||||||||||||||||..|||||.|||||||||
+query           105 ATAACTACTGGAAACGGTAGCTAATACCGCATAACGTCGCAAGACCAAAGTGGGGGACCT
+
+target          178 TAGGGCCTCTTGCCATCGGATGTGCCCAGATGGGATTAGCTAGTAGGTGGGGTAACGGCT
+                180 |.|||||||.|||||||.||||||||||||||||||||||||||||||||||||||||||
+query           165 TCGGGCCTCATGCCATCAGATGTGCCCAGATGGGATTAGCTAGTAGGTGGGGTAACGGCT
+
+target          238 CACCTAGGCGACAATCCCTAGGTGGTCTGAGAGGATGACCAGCCACACTGGAACTGAGAC
+                240 ||||||||||||.||||||||.||||||||||||||||||||||||||||||||||||||
+query           225 CACCTAGGCGACGATCCCTAGCTGGTCTGAGAGGATGACCAGCCACACTGGAACTGAGAC
+
+target          298 ACGGTCCAGACTCCTACGGGAGGCAGCAGTGGGGAATATTGCACAATGGGCGCAAGCCTG
+                300 ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+query           285 ACGGTCCAGACTCCTACGGGAGGCAGCAGTGGGGAATATTGCACAATGGGCGCAAGCCTG
+
+target          358 ATGCAGCCATGCCGCGTGTATGAAGAAGGCCTTCGGGTTGTAAAGTACTTTCAGCGGGGA
+                360 ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+query           345 ATGCAGCCATGCCGCGTGTATGAAGAAGGCCTTCGGGTTGTAAAGTACTTTCAGCGGGGA
+
+target          418 GGAAGG-GAGTAAAGTTAATACCTTTGCTC-ATTGACGTTACCCGCAGAAGAAGCACCGG
+                420 ||||||-||-|||.|||||||.|.|||-||-|||||||||||||||||||||||||||||
+query           405 GGAAGGCGA-TAAGGTTAATAACCTTG-TCGATTGACGTTACCCGCAGAAGAAGCACCGG
+
+target          476 CTAACTCCGTGCCAGCAGCCGCGGTAATACGGAGGGTGCAAGCGTTAATCGGAATTACTG
+                480 ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+query           463 CTAACTCCGTGCCAGCAGCCGCGGTAATACGGAGGGTGCAAGCGTTAATCGGAATTACTG
+
+target          536 GGCGTAAAGCGCACGCAGGCGGTTTGTTAAGTCAGATGTGAAATCCCCGGGCTCAACCTG
+                540 |||||||||||||||||||||||.|||.|||||.||||||||||||||||||||||||||
+query           523 GGCGTAAAGCGCACGCAGGCGGTCTGTCAAGTCGGATGTGAAATCCCCGGGCTCAACCTG
+
+target          596 GGAACTGCATCTGATACTGGCAAGCTTGAGTCTCGTAGAGGGGGGTAGAATTCCAGGTGT
+                600 ||||||||||..||.|||||||.|||.||||||.||||||||||||||||||||||||||
+query           583 GGAACTGCATTCGAAACTGGCAGGCTAGAGTCTTGTAGAGGGGGGTAGAATTCCAGGTGT
+
+target          656 AGCGGTGAAATGCGTAGAGATCTGGAGGAATACCGGTGGCGAAGGCGGCCCCCTGGACGA
+                660 ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||.|
+query           643 AGCGGTGAAATGCGTAGAGATCTGGAGGAATACCGGTGGCGAAGGCGGCCCCCTGGACAA
+
+target          716 AGACTGACGCTCAGGTGCGAAAGCGTGGGGAGCAAACAGGATTAGATACCCTGGTAGTCC
+                720 ||||.|||||||||||||||||||||||||||||||||||||||||||||||||||||||
+query           703 AGACWGACGCTCAGGTGCGAAAGCGTGGGGAGCAAACAGGATTAGATACCCTGGTAGTCC
+
+target          776 ACGCCGTAAACGATGTCGACTTGGAGGTTGTGCCCTTGAGGCGTGGCTTCCGGAGCTAAC
+                780 ||||||||||||||.||||.||||||||||||||||||||||||||||||||||||||||
+query           763 ACGCCGTAAACGATRTCGATTTGGAGGTTGTGCCCTTGAGGCGTGGCTTCCGGAGCTAAC
+
+target          836 GCGTTAAGTCGACCGCCTGGGGAGTACGGCCGCAAGGTTAAAACTCAAATGAATTGACGG
+                840 |||||||.||||||||||||||||||||||||||||||||||||||-|||||||||||||
+query           823 GCGTTAAATCGACCGCCTGGGGAGTACGGCCGCAAGGTTAAAACTC-AATGAATTGACGG
+
+target          896 GGG--CCGCACAAGCGGTGGAGCATGTGGTTTAATTCGATGCAACGCGAAGAACCTTACC
+                900 |||--|||||||||||||||||||||||||||||||||||||||||||.|||||||||.|
+query           882 GGGGCCCGCACAAGCGGTGGAGCATGTGGTTTAATTCGATGCAACGCGCAGAACCTTAYC
+
+target          954 TGGTCTTGACATCCACGGAAGTTTCCAGAGATGGGAAGGTGCCTTCGGGAACCGTGAGAC
+                960 ||||||||||||||||.|||.||..||||||||....|||||||||||||||.|||||||
+query           942 TGGTCTTGACATCCACAGAACTTAGCAGAGATGCTTTGGTGCCTTCGGGAACTGTGAGAC
+
+target         1014 AGGTGCTGCATGGCTGTCGTCAGCTCGTGTTGTGAAATGTTGGGTTAAGTCCCGCAACGA
+               1020 ||||||||||||||||||||||||||||||||||||||||||||.||||||||||-||||
+query          1002 AGGTGCTGCATGGCTGTCGTCAGCTCGTGTTGTGAAATGTTGGGATAAGTCCCGC-ACGA
+
+target         1074 GCGCAACCCTTATCCTTTGTTGCCAGCGGTCCGGCCGGGAACTCAAAGGAGACTGCCAGT
+               1080 |.||-|.||.||||.||.||||-|||||.|.|||||||.|||||-|||||||||||----
+query          1061 GMGC-ATCCATATCATTKGTTG-CAGCGATTCGGCCGGTAACTC-AAGGAGACTGC----
+
+target         1134 GATAAACTGGAGGAAGGTGGGGATGACGTCAAGTCATCATGGCCCTTACGACCAGGGCTA
+               1140 -------------------------------|||--------------------------
+query          1114 -------------------------------AGT--------------------------
+
+target         1194 CACACGTGCTACAATGGCGCATACAAAGAGAAGCGACCTCGCGAGAGCAAGCGGACCTCA
+               1200 --------------||-------------------------------------------|
+query          1117 --------------TG-------------------------------------------A
+
+target         1254 TAAAGTGCGTCGTAGTCCGGATTGGAGTCTGCAACTCGACTCCATGAAGTCGGAATCGCT
+               1260 |||-------------------------------------------------------||
+query          1120 TAA-------------------------------------------------------CT
+
+target         1314 AGTAATCGTGGATCAGAATGCCACGGTGAATACGTTCCCGGGCCTTGTACACACCGCCCG
+               1320 --------||||------------------------------------------------
+query          1125 --------TGGA------------------------------------------------
+
+target         1374 TCACACCATGGGAGTGGGTTGCAAAAGAAGTAGGTAGCTTAACTTCGGGAGGGCGCTTAC
+               1380 ----------|||---------||||-|.||.||--------------------------
+query          1129 ----------GGA---------AAAA-AKGTKGG--------------------------
+
+target         1434 CACTTTGTGATTCATGACTGGGGTGAAGTCGAACAAGCA 1473
+               1440 ------------------------------------|-| 1479
+query          1143 ------------------------------------G-A 1145
+
+Score : 816.5</code></pre></div>
+<section class="text"><h5>3-3_ S. enterica vs K. pneumoniae</h5></section>
+<div class="cell"><div class="lbl">Script</div><pre class="code"><code>seq2 = sequences[1].seq
+seq3 = sequences[2].seq
+
+alignments = aligner.align(seq2, seq3)
+
+best_alignment = alignments[0]
+
+print(best_alignment)
+print(&quot;Score :&quot;, best_alignment.score)</code></pre><div class="lbl out">Sortie</div><pre class="output"><code>target            0 ------------------------------------------------------------
+                  0 ------------------------------------------------------------
+query             0 AGGMGGCCWAMAMATGCAAGTCGAGCGGTAGCACAGAGAGCTTGCTCTCGGGTGACGAGC
+
+target            0 ------------AGTAATGTCTGGGAAACTGCCTGATGGAGGGGGATAACTACTGGAAAC
+                 60 ------------||||||||||||||||||||||||||||||||||||||||||||||||
+query            60 GGCGGACGGGTGAGTAATGTCTGGGAAACTGCCTGATGGAGGGGGATAACTACTGGAAAC
+
+target           48 GGTGGCTAATACCGCATAACGTCGCAAGACCAAAGAGGGGGACCTTCGGGCCTCTTGCCA
+                120 |||.|||||||||||||||||||||||||||||||.||||||||||||||||||.|||||
+query           120 GGTAGCTAATACCGCATAACGTCGCAAGACCAAAGTGGGGGACCTTCGGGCCTCATGCCA
+
+target          108 TCAGATGTGCCCAGATGGGATTAGCTTGTTGGTGAGGTAACGGCTCACCAAGGCGACGAT
+                180 ||||||||||||||||||||||||||.||.||||.||||||||||||||.||||||||||
+query           180 TCAGATGTGCCCAGATGGGATTAGCTAGTAGGTGGGGTAACGGCTCACCTAGGCGACGAT
+
+target          168 CCCTAGCTGGTCTGAGAGGATGACCAGCCACACTGGAACTGAGACACGGTCCAGACTCCT
+                240 ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+query           240 CCCTAGCTGGTCTGAGAGGATGACCAGCCACACTGGAACTGAGACACGGTCCAGACTCCT
+
+target          228 ACGGGAGGCAGCAGTGGGGAATATTGCACAATGGGCGCAAGCCTGATGCAGCCATGCCGC
+                300 ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+query           300 ACGGGAGGCAGCAGTGGGGAATATTGCACAATGGGCGCAAGCCTGATGCAGCCATGCCGC
+
+target          288 GTGTATGAAGAAGGCCTTCGGGTTGTAAAGTACTTTCAGCGGGGAGGAAGGTGTTGTGGT
+                360 |||||||||||||||||||||||||||||||||||||||||||||||||||.|.|..|||
+query           360 GTGTATGAAGAAGGCCTTCGGGTTGTAAAGTACTTTCAGCGGGGAGGAAGGCGATAAGGT
+
+target          348 TAATAACCGCAGCAATTGACGTTACCCGCAGAAGAAGCACCGGCTAACTCCGTGCCAGCA
+                420 ||||||||....|.||||||||||||||||||||||||||||||||||||||||||||||
+query           420 TAATAACCTTGTCGATTGACGTTACCCGCAGAAGAAGCACCGGCTAACTCCGTGCCAGCA
+
+target          408 GCCGCGGTAATACGGAGGGTGCAAGCGTTAATCGGAATTACTGGGCGTAAAGCGCACGCA
+                480 ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+query           480 GCCGCGGTAATACGGAGGGTGCAAGCGTTAATCGGAATTACTGGGCGTAAAGCGCACGCA
+
+target          468 GGCGGTCTGTCAAGTCGGATGTGAAATCCCCGGGCTCAACCTGGGAACTGCATTCGAAAC
+                540 ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+query           540 GGCGGTCTGTCAAGTCGGATGTGAAATCCCCGGGCTCAACCTGGGAACTGCATTCGAAAC
+
+target          528 TGGCAGGCTTGAGTCTTGTAGAGGGGGGTAGAATTCCAGGTGTAGCGGTGAAATGCGTAG
+                600 |||||||||.||||||||||||||||||||||||||||||||||||||||||||||||||
+query           600 TGGCAGGCTAGAGTCTTGTAGAGGGGGGTAGAATTCCAGGTGTAGCGGTGAAATGCGTAG
+
+target          588 AGATCTGGAGGAATACCGGTGGCGAAGGCGGCCCCCTGGACAAAGACTGACGCTCAGGTG
+                660 |||||||||||||||||||||||||||||||||||||||||||||||.||||||||||||
+query           660 AGATCTGGAGGAATACCGGTGGCGAAGGCGGCCCCCTGGACAAAGACWGACGCTCAGGTG
+
+target          648 CGAAAGCGTGGGGAGCAAACAGGATTAGATACCCTGGTAGTCCACGCCGTAAACGATGTC
+                720 |||||||||||||||||||||||||||||||||||||||||||||||||||||||||.||
+query           720 CGAAAGCGTGGGGAGCAAACAGGATTAGATACCCTGGTAGTCCACGCCGTAAACGATRTC
+
+target          708 TACTTGGAGGTTGTGCCCTTGAGGCGTGGCTTCCGGAGCTAACGCGTTAAGTAGACCGCC
+                780 .|.|||||||||||||||||||||||||||||||||||||||||||||||.|.|||||||
+query           780 GATTTGGAGGTTGTGCCCTTGAGGCGTGGCTTCCGGAGCTAACGCGTTAAATCGACCGCC
+
+target          768 TGGGGAGTACGGCCGCAAGGTTAAAACTCAAATGAATTGAC-GGGGGCCCGCACAAGCGG
+                840 |||||||||||||||||||||||||||||-|||||||||||-||||||||||||||||||
+query           840 TGGGGAGTACGGCCGCAAGGTTAAAACTC-AATGAATTGACGGGGGGCCCGCACAAGCGG
+
+target          827 TGGAGCATGTGGTTTAATTCGATGCAACGCGAAGAACCTTACCTGGTCTTGACATCCACA
+                900 |||||||||||||||||||||||||||||||.|||||||||.||||||||||||||||||
+query           899 TGGAGCATGTGGTTTAATTCGATGCAACGCGCAGAACCTTAYCTGGTCTTGACATCCACA
+
+target          887 GAAGAATCCAGAGATGGATTTGTGCCTTCGGGAACTGTGAGACAGGTGCTGCATGGCTGT
+                960 |||.....||||||||..||.|||||||||||||||||||||||||||||||||||||||
+query           959 GAACTTAGCAGAGATGCTTTGGTGCCTTCGGGAACTGTGAGACAGGTGCTGCATGGCTGT
+
+target          947 CGTCAGCTCGTGTTGTGAAATGTTGGGTTAAGTCCCGCAACGAGCGCAACCCTTATCCTT
+               1020 |||||||||||||||||||||||||||.||||||||||-|||||.||-|.||.||||.||
+query          1019 CGTCAGCTCGTGTTGTGAAATGTTGGGATAAGTCCCGC-ACGAGMGC-ATCCATATCATT
+
+target         1007 TGTTGCCAGCGGTTAGGCCGGGAACTCAAAGGAGACTGCCAG-TGATAAACTGGAGGAAG
+               1080 .||||-|||||.||.||||||.|||||-||||||||||-|||-||||||..||||||||-
+query          1077 KGTTG-CAGCGATTCGGCCGGTAACTC-AAGGAGACTG-CAGTTGATAACTTGGAGGAA-
+
+target         1066 GTGGGGATGACGTCAAGTCATCATGGCCCTTACGACCAGGGCTACACACGTGCTACAATG
+               1140 ------------------------------------------------------------
+query          1133 ------------------------------------------------------------
+
+target         1126 GCGCATACAAAGAGAAGCGACCTCGCGAGAGCAAGCGGACCTCATAAAGTGCGTCGTAGT
+               1200 ---------------------------------------------|||------------
+query          1133 ---------------------------------------------AAA------------
+
+target         1186 CCGGATTGGAGTCTGCAACTCGACTCCATGAAGTCGGAATCGCTAGTAATCGTGGATCAG
+               1260 ------------------------------|.||.||-----------------------
+query          1136 ------------------------------AKGTKGG-----------------------
+
+target         1246 AATGCCACGGTGAATACGTTCCCGGG 1272
+               1320 -----------||------------- 1346
+query          1143 -----------GA------------- 1145
+
+Score : 822.0</code></pre></div>
+<section class="text"><h5>3-4_Afficher les scores des alignements</h5></section>
+<div class="cell"><div class="lbl">Script</div><pre class="code"><code>pairs = [ (0, 1),(0, 2),(1, 2)]
+
+for i, j in pairs:
+
+    score = aligner.score(sequences[i].seq, sequences[j].seq)
+
+    print(sequences[i].id, &quot;&lt;-&gt;&quot;, sequences[j].id, &quot;Score =&quot;,score)</code></pre><div class="lbl out">Sortie</div><pre class="output"><code>Escherichia_coli &lt;-&gt; Salmonella_enterica Score = 1076.0
+Escherichia_coli &lt;-&gt; Klebsiella_pneumoniae Score = 816.5
+Salmonella_enterica &lt;-&gt; Klebsiella_pneumoniae Score = 822.0</code></pre></div>
+<section class="text"><h6>Remarque: Nous Reamrquons donc après alignement le E.coli est plus proches du S.enterica que du K. pneumoniae</h6></section>
+<section class="text"><h3>4_ Calcule d'une matrice de distances génétiques fondée sur la p-distance.</h3>
+<p>Une fois les alignements examinés, nous pourrons passer au calcul des distances génétiques.Nous utiliserons notamment la p-distance, qui correspond à la proportion de positions comparables présentant des nucléotides différents.<br />
+Sa formule est :</p>
+<div class="formula"><i>p</i> = <span class="frac"><span>N<sub>d</sub></span><span>N<sub>c</sub></span></span></div>
+
+<p>où :<br />
+<i>N<sub>d</sub></i> représente le nombre de positions présentant des nucléotides différents ;<br />
+<i>N<sub>c</sub></i> représente le nombre total de positions comparables retenues dans le calcul.</p>
+<p>Une p-distance de 0 signifie que les deux séquences sont identiques (hors gaps), tandis qu'une valeur proche de 1 indique qu'elles sont très différentes.</p></section>
+<section class="text"><h5>4-1_Calcul de la p-distance</h5></section>
+<div class="cell"><div class="lbl">Script</div><pre class="code"><code># selectionne le meilleur alignement global
+def p_distance (seq1, seq2):
+    alignment = aligner.align(seq1,seq2)[0]    #Le meilleur alignement global entre seq1 et seq2 est calculé à l&#x27;aide de l&#x27;outil aligner.
+    aligned = alignment.format()                # extrait les sequences aligner
+    lignes = aligned.split(&#x27;\n&#x27;)
+
+    seqA = &quot;&quot;              # stocker les sequences dans seqA et seqB
+    seqB = &quot;&quot;
+
+    for line in lignes:
+        if line.startswith(&quot;target&quot;):
+            seqA += line.split()[2]
+
+        elif line.startswith(&quot;query&quot;):
+            seqB += line.split()[2]
+
+    differences = 0
+    compared = 0
+
+    for a, b in zip(seqA, seqB):            #Les deux séquences alignées sont parcourues position par position.
+
+        # on ignore les gaps
+        if a == &quot;-&quot; or b == &quot;-&quot;:           #les positions contenant un gap (-) ne sont pas prises en compte dans le calcul
+            continue
+
+        compared += 1
+
+        if a != b:
+            differences += 1
+
+    return differences / compared          #La p-distance est obtenue en divisant le nombre de différences par 
+                                              #le nombre total de positions comparées (hors gaps).</code></pre></div>
+<section class="text"><h5>4-2_ Calcule de la matrice de distance</h5></section>
+<div class="cell"><div class="lbl">Script</div><pre class="code"><code>n = len(sequences)         #Cette instruction récupère le nombre total de séquences à comparer
+
+distance_matrix = [[0.0] * n for _ in range(n)]    #Une matrice carrée de taille n × n est créée et remplie de zéros. Les éléments de la diagonale 
+                                                    #resteront à 0, car la distance entre une séquence et elle-même est nulle
+
+for i in range(n):
+
+    for j in range(i + 1, n):                       #Les boucles parcourent toutes les paires de séquences sans effectuer de comparaisons  
+                                                               #répétées (par exemple, si A–B est calculée, B–A ne l&#x27;est pas).
+
+        d = p_distance(sequences[i].seq, sequences[j].seq)    #La fonction p_distance() est appelée pour calculer la proportion de 
+                                                                  #différences entre les deux séquences
+        
+        distance_matrix[i][j] = d
+        distance_matrix[j][i] = d             #La distance calculée est enregistrée dans les deux positions (i, j) et (j, i)
+distance_matrix</code></pre><div class="lbl out">Sortie</div><pre class="output"><code>[[0.0, 0.03307086614173228, 0.04916593503072871],
+ [0.03307086614173228, 0.0, 0.04295051353874883],
+ [0.04916593503072871, 0.04295051353874883, 0.0]]</code></pre></div>
+<div class="cell"><div class="lbl">Script</div><pre class="code"><code># affiché la matrice de distance sous matricielle et arrondi
+import pandas as pd    
+
+names = [s.id for s in sequences]  
+
+df = pd.DataFrame(distance_matrix, index=names, columns=names) 
+
+print(df.round(4))</code></pre><div class="lbl out">Sortie</div><pre class="output"><code>                       Escherichia_coli  Salmonella_enterica  \
+Escherichia_coli                 0.0000               0.0331   
+Salmonella_enterica              0.0331               0.0000   
+Klebsiella_pneumoniae            0.0492               0.0430   
+
+                       Klebsiella_pneumoniae  
+Escherichia_coli                      0.0492  
+Salmonella_enterica                   0.0430  
+Klebsiella_pneumoniae                 0.0000</code></pre></div>
+<section class="text"><h3>5_ Reconstruction des arbres phylogénétiques par UPGMA et Neighbor-Joining.</h3>
+<p>Un arbre phylogénétique représente les relations de parenté entre des espèces à partir de leurs caractéristiques génétiques. Les extrémités, appelées <em>feuilles</em>, correspondent aux espèces étudiées, tandis que les <em>nœuds</em> représentent leurs ancêtres communs hypothétiques. Les longueurs des branches peuvent représenter les distances évolutives entre les séquences, selon la méthode de reconstruction utilisée.</p>
+<p>Pour décrire la structure d'un arbre, nous utilisons le <strong>format Newick</strong>, une notation textuelle standard en bioinformatique. Les parenthèses indiquent les regroupements entre les espèces. Par exemple, <code>((A,B),C);</code> signifie que A et B partagent un ancêtre commun plus récent entre eux que celui qu'ils partagent avec C. Les longueurs des branches peuvent être indiquées après le symbole <code>:</code>. Ainsi, dans <code>((A:0.10,B:0.10):0.05,C:0.15);</code>, les valeurs numériques représentent les longueurs des branches correspondantes.<br />
+Le format Newick permet donc de représenter simplement la topologie d'un arbre phylogénétique et, lorsqu'elles sont disponibles, les longueurs de ses branches.</p>
+<p>Biopython utilise la classe DistanceMatrix; Cette classe permet de représenter une matrice de distances compatible avec les algorithmes  de construction d'arbres phylogénétiques de Biopython, tels que Neighbor Joining (NJ) et UPGMA.</p></section>
+<div class="cell"><div class="lbl">Script</div><pre class="code"><code>from Bio.Phylo.TreeConstruction import DistanceMatrix
+
+names = [s.id for s in sequences]    
+lower_triangle = []   
+
+for i in range(len(distance_matrix)):
+    lower_triangle.append(distance_matrix[i][:i+1] )    
+
+dm = DistanceMatrix(names, lower_triangle)         
+dm</code></pre><div class="lbl out">Sortie</div><pre class="output"><code>DistanceMatrix(names=[&#x27;Escherichia_coli&#x27;, &#x27;Salmonella_enterica&#x27;, &#x27;Klebsiella_pneumoniae&#x27;], matrix=[[0], [0.03307086614173228, 0], [0.04916593503072871, 0.04295051353874883, 0]])</code></pre></div>
+<section class="text"><h5>5-1_Methodes UPGMA</h5></section>
+<div class="cell"><div class="lbl">Script</div><pre class="code"><code>from Bio.Phylo.TreeConstruction import DistanceTreeConstructor            
+
+constructor = DistanceTreeConstructor()            
+
+upgma_tree = constructor.upgma(dm)</code></pre></div>
+<div class="cell"><div class="lbl">Script</div><pre class="code"><code>#Affiché l&#x27;arbre
+from Bio import Phylo
+
+Phylo.draw_ascii(upgma_tree)</code></pre><div class="lbl out">Sortie</div><pre class="output"><code>  _______________________________________________________ Klebsiella_pneumoniae
+_|
+ |               ________________________________________ Salmonella_enterica
+ |______________|
+                |________________________________________ Escherichia_coli</code></pre></div>
+<div class="cell"><div class="lbl">Script</div><pre class="code"><code>#Interpretation et Obtention des details sur l&#x27;arbre 
+from Bio import Phylo
+Phylo.write(upgma_tree, &quot;tree.nwk&quot;, &quot;newick&quot;)
+print(upgma_tree.format(&quot;newick&quot;))</code></pre><div class="lbl out">Sortie</div><pre class="output"><code>(Klebsiella_pneumoniae:0.023029112,(Salmonella_enterica:0.016535433,Escherichia_coli:0.016535433)Inner1:0.0064936791)Inner2:0;</code></pre></div>
+<section class="text"><h5>Interpretation:</h5>
+<p>Cet arbre phylogénétique a été construit à partir des <strong>séquences du gène 16S rRNA</strong> de <em>Klebsiella pneumoniae</em>, <em>Salmonella enterica</em> et <em>Escherichia coli</em>, en utilisant la méthode <strong>UPGMA</strong> à partir de la matrice des distances génétiques calculées sur les séquences alignées.<br />
+La topologie de l’arbre, représentée par la chaîne Newick :</p>
+<pre><code class="language-text">((Klebsiella_pneumoniae:0.023029112,(Salmonella_enterica:0.016535433,Escherichia_coli:0.016535433)Inner1:0.0064936791)Inner2:0);
+</code></pre>
+<p>montre que <strong>Salmonella enterica</strong> et <strong>Escherichia coli</strong> sont les deux premières espèces regroupées. Elles forment un clade (<code>Inner1</code>), indiquant que leurs séquences du gène 16S rRNA présentent la plus faible distance génétique parmi les trois espèces étudiées. <strong>Klebsiella pneumoniae</strong> est ensuite rattachée à ce groupe au niveau du nœud <code>Inner2</code>.<br />
+Les longueurs des branches représentent les distances évolutives estimées. Les branches reliant <em>Salmonella enterica</em> et <em>Escherichia coli</em> au nœud <code>Inner1</code> ont chacune une longueur de <strong>0,016535433</strong>. La branche reliant <code>Inner1</code> à <code>Inner2</code> mesure <strong>0,0064936791</strong>, tandis que celle reliant <em>Klebsiella pneumoniae</em> à <code>Inner2</code> mesure <strong>0,023029112</strong>. La somme des longueurs des branches entre la racine et chacune des trois espèces est identique (<strong>0,023029112</strong>), ce qui correspond à l’hypothèse d’horloge moléculaire utilisée par UPGMA.<br />
+Ainsi, les séquences étudiées montrent une proximité génétique plus importante entre <em>Salmonella enterica</em> et <em>Escherichia coli</em> qu’avec <em>Klebsiella pneumoniae</em>. Ce résultat doit toutefois être interprété avec prudence, car l’analyse repose sur <strong>un seul gène, le 16S rRNA, et seulement trois espèces</strong>. De plus, UPGMA suppose un taux d’évolution constant dans toutes les lignées, une hypothèse qui n’est pas toujours vérifiée en phylogénie moléculaire.</p></section>
+<section class="text"><h5>5-2_ Methode Neighbor Joining</h5></section>
+<div class="cell"><div class="lbl">Script</div><pre class="code"><code>from Bio.Phylo.TreeConstruction import DistanceTreeConstructor            
+
+constructor = DistanceTreeConstructor()            
+
+nj_tree = constructor.nj(dm)</code></pre></div>
+<div class="cell"><div class="lbl">Script</div><pre class="code"><code>#Affiché l&#x27;arbre
+from Bio import Phylo
+
+Phylo.draw_ascii(nj_tree)</code></pre><div class="lbl out">Sortie</div><pre class="output"><code>  ____________________________________ Escherichia_coli
+ |
+_|________________________ Salmonella_enterica
+ |
+ |_______________________________________________________ Klebsiella_pneumoniae</code></pre></div>
+<div class="cell"><div class="lbl">Script</div><pre class="code"><code>#Interpretation et Obtention des details sur l&#x27;arbre 
+from Bio import Phylo
+Phylo.write(nj_tree, &quot;tree.nwk&quot;, &quot;newick&quot;)
+print(nj_tree.format(&quot;newick&quot;))</code></pre><div class="lbl out">Sortie</div><pre class="output"><code>(Escherichia_coli:0.019643144,Salmonella_enterica:0.013427722,Klebsiella_pneumoniae:0.029522791)Inner1:0;</code></pre></div>
+<section class="text"><h5>Interpretation:</h5>
+<p>Cet arbre phylogénétique a été construit à partir des séquences du gène <strong>16S rRNA</strong> de <em>Escherichia coli</em>, <em>Salmonella enterica</em> et <em>Klebsiella pneumoniae</em>, en utilisant la méthode <strong>Neighbor Joining</strong> à partir de la matrice des distances génétiques.<br />
+La chaîne Newick obtenue est :</p>
+<pre><code class="language-text">((Escherichia_coli:0.019643144,Salmonella_enterica:0.013427722,Klebsiella_pneumoniae:0.029522791)Inner1:0);
+</code></pre>
+<p>L’arbre présente une <strong>structure en étoile</strong>, dans laquelle les trois espèces sont directement reliées au même nœud interne (<code>Inner1</code>). La topologie ne fait donc apparaître aucun regroupement étroitement liés entre deux espèces. Toutefois, les longueurs des branches permettent de comparer les distances génétiques estimées : <em>Escherichia coli</em> et <em>Salmonella enterica</em> présentent la plus faible distance, estimée à <strong>0,03307</strong>, contre <strong>0,04295</strong> entre <em>Salmonella enterica</em> et <em>Klebsiella pneumoniae</em>, et <strong>0,04917</strong> entre <em>Escherichia coli</em> et <em>Klebsiella pneumoniae</em>.<br />
+Ainsi, même si l’arbre ne montre pas de regroupement bifurqué explicite, les longueurs des branches indiquent que <strong>Escherichia coli et Salmonella enterica sont les plus proches génétiquement</strong> parmi les trois espèces étudiées. Contrairement à UPGMA, la méthode Neighbor Joining ne suppose pas un taux d’évolution constant dans toutes les lignées.</p></section>
+<section class="text"><h3>Discussion:</h3>
+<p>L’arbre UPGMA regroupe Salmonella enterica et Escherichia coli, qui partagent un ancêtre commun plus récent, tandis que Klebsiella pneumoniae se rattache ensuite. Ce regroupement traduit une proximité génétique plus importante entre les deux premières espèces pour le gène 16S rRNA étudié. Cette topologie est globalement cohérente avec leur classification bactérienne. Toutefois, l’analyse repose sur un seul gène et la méthode UPGMA suppose une vitesse d’évolution constante entre les lignées. Ces limites doivent être prises en compte dans l’interprétation des relations évolutives.</p>
+<p>L’arbre obtenu par la méthode Neighbor Joining relie les trois espèces à un même nœud interne, donnant une représentation en étoile. Avec seulement trois taxons, cette forme ne permet pas de mettre en évidence un regroupement bifurqué uniquement à partir de la topologie. Toutefois, les longueurs des branches indiquent que Escherichia coli et Salmonella enterica présentent la plus faible distance évolutive estimée. Contrairement à UPGMA, le Neighbor Joining ne suppose pas que toutes les lignées évoluent à la même vitesse.</p></section>
+<section class="text"><h2>Conclusion</h2>
+<p>Les arbres obtenus montrent que la méthode de reconstruction influence la représentation des relations génétiques. <strong>UPGMA</strong> regroupe <em>Escherichia coli</em> et <em>Salmonella enterica</em>, tandis que <strong>Neighbor Joining</strong> présente un arbre en étoile, même si les longueurs des branches indiquent que ces deux espèces sont les plus proches. Ces résultats doivent être interprétés avec prudence, car l’analyse repose sur un seul gène, le <strong>16S rRNA</strong>, et seulement trois espèces. Pour obtenir une phylogénie plus fiable, il serait utile d’étudier davantage d’espèces et d’utiliser plusieurs marqueurs moléculaires.</p></section>
+<section class="text"><h6>Réalisé par Regis HOUNKPATIN.</h6>
+<p>Fait ce 25/09/2026</p></section>
+</main>
+</body>
+</html>
